@@ -9,9 +9,14 @@ C_DANGER=$(hex_fg 255 85 85)   # Red
 C_GOSSIP=$(hex_fg 139 233 253) # Sky Blue
 C_WARN=$(hex_fg 255 184 108)   # Orange
 
-# --- ARGUMENT CHECK ---
-SILENT_MODE=false
-[[ "$1" == "--silent" ]] && SILENT_MODE=true
+# --- PERSONALITY ENGINE ---
+MSG_START=("Initializing neural link..." "Accessing the mainframes..." "Preparing the heist..." "Powering up Infinity Engines...")
+MSG_MID=("Injecting code into the stream..." "Slicing through dependencies..." "Bypassing repo security..." "Synchronizing local clusters...")
+MSG_END=("Heist successful. Source is locked." "Neuro-link severed. Good luck with the build." "All systems green. Deployment ready." "The shadow has passed. Build at will.")
+
+START_TXT=${MSG_START[$RANDOM % ${#MSG_START[@]}]}
+MID_TXT=${MSG_MID[$RANDOM % ${#MSG_MID[@]}]}
+END_TXT=${MSG_END[$RANDOM % ${#MSG_END[@]}]}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOP="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -20,7 +25,6 @@ TOP="$(cd "$SCRIPT_DIR/.." && pwd)"
 SKIPPED_LIST=()
 
 # --- YOUR COMMITS ---
-# Enforced: SSH format for GitHub, GitLab, and Codeberg
 PATCHES=(
     "vendor/infinity|Pyrtle93|git@github.com:PisselShit/vendor_infinity.git|dc68934d6a22e1fb14035192418bc8dbb31a0c70"
     "vendor/infinity|Pyrtle93|git@github.com:PisselShit/vendor_infinity.git|ce9a150a85e91c0f750016d43acc1ecf75273fd4"
@@ -44,11 +48,9 @@ PATCHES=(
     "frameworks/base|Pyrtle93|git@codeberg.org:Pyrtle93/frameworks_base.git|311655d9bd2fcb709791d1ad061acca1f9a2f6b4"
 )
 
-if [ "$SILENT_MODE" = false ]; then
-    echo -e "${C_PRIME}🍒 INFINITY CHERRY-PICK ENGINE${NC}"
-fi
-
-echo -e "${C_WARN}󱗘 Shadow Mode: Checking and applying patches...${NC}"
+# --- START ---
+echo -e "${C_PRIME}󱐋 $START_TXT${NC}"
+echo -e "${C_WARN}󱗘 $MID_TXT${NC}\n"
 
 for patch in "${PATCHES[@]}"; do
     IFS='|' read -r TARGET_DIR R_NAME R_URL COMMIT_HASH <<< "$patch"
@@ -62,14 +64,14 @@ for patch in "${PATCHES[@]}"; do
 
     cd "$FULL_PATH" || continue
     
-    # --- REMOTE MANAGEMENT ---
+    # Remote Management
     if git remote | grep -q "$R_NAME"; then
         git remote set-url "$R_NAME" "$R_URL"
     else
         git remote add "$R_NAME" "$R_URL"
     fi
     
-    # --- DUPLICATE CHECK ---
+    # Duplicate Check
     if git rev-parse --quiet --verify "${COMMIT_HASH}^{commit}" >/dev/null 2>&1 && \
        git merge-base --is-ancestor "$COMMIT_HASH" HEAD >/dev/null 2>&1; then
         echo -e "  ${C_ACCENT}󰄬 $SHORT_HASH already present in $TARGET_DIR. Skipping.${NC}"
@@ -82,7 +84,7 @@ for patch in "${PATCHES[@]}"; do
             echo -e "✅"
         else
             if [ -z "$(git status --porcelain)" ]; then
-                 echo -e "✅ ${C_ACCENT}(Empty/Already present)${NC}"
+                 echo -e "✅ ${C_ACCENT}(Already applied)${NC}"
                  git cherry-pick --abort &>/dev/null
             else
                 echo -e "❌ ${C_DANGER}CONFLICT! Auto-skipping...${NC}"
@@ -96,15 +98,12 @@ for patch in "${PATCHES[@]}"; do
     fi
 done
 
-# --- FINAL SUMMARY REPORT ---
+# --- SKIP SUMMARY ---
 if [ ${#SKIPPED_LIST[@]} -ne 0 ]; then
-    echo -e "\n${C_DANGER}⚠️  PATCHING WARNING: SOME COMMITS WERE SKIPPED${NC}"
-    echo -e "${C_PRIME}─────────────────────────────────────────────────${NC}"
+    echo -e "\n${C_DANGER}⚠️  WARNING: SOME PATCHES SKIPPED${NC}"
     for item in "${SKIPPED_LIST[@]}"; do
         echo -e "  ${C_WARN}󰔶 $item${NC}"
     done
-    echo -e "${C_PRIME}─────────────────────────────────────────────────${NC}"
-    echo -e "${C_GOSSIP}Recommendation: Check these repos manually to resolve conflicts.${NC}\n"
-else
-    echo -e "\n${C_ACCENT}✅ All patches verified/applied successfully!${NC}\n"
 fi
+
+echo -e "\n${C_ACCENT}󰄬 $END_TXT${NC}"
