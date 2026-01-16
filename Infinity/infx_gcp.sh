@@ -3,26 +3,31 @@
 # --- HEX COLORS ---
 hex_fg() { echo -ne "\033[38;2;$1;$2;$3m"; }
 NC='\033[0m'
-C_ACCENT=$(hex_fg 3 218 198)   # Teal
-C_PRIME=$(hex_fg 187 134 252)  # Purple
-C_DANGER=$(hex_fg 255 85 85)   # Red
-C_GOSSIP=$(hex_fg 139 233 253) # Sky Blue
-C_WARN=$(hex_fg 255 184 108)   # Orange
+C_ACCENT=$(hex_fg 3 218 198)
+C_PRIME=$(hex_fg 187 134 252)
+C_DANGER=$(hex_fg 255 85 85)
+C_GOSSIP=$(hex_fg 139 233 253)
+C_WARN=$(hex_fg 255 184 108)
+
+# --- DIRECTORY INTELLIGENCE ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOP="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# --- SANITY CHECK ---
+if [ ! -d "$TOP/.repo" ]; then
+    echo -e "${C_DANGER}❌ ABORTING HEIST!${NC}"
+    echo -e "${C_WARN}Target root not found at:${NC} $TOP"
+    exit 1
+fi
 
 # --- PERSONALITY ENGINE ---
-MSG_START=("Initializing neural link..." "Accessing the mainframes..." "Preparing the heist..." "Powering up Infinity Engines...")
-MSG_MID=("Injecting code into the stream..." "Slicing through dependencies..." "Bypassing repo security..." "Synchronizing local clusters...")
-MSG_END=("Heist successful. Source is locked." "Neuro-link severed. Good luck with the build." "All systems green. Deployment ready." "The shadow has passed. Build at will.")
+MSG_START=("Initializing neural link..." "Accessing the mainframes..." "Preparing the heist...")
+MSG_MID=("Injecting code..." "Slicing through dependencies..." "Bypassing repo security...")
+MSG_END=("Heist successful. Source is locked." "All systems green.")
 
 START_TXT=${MSG_START[$RANDOM % ${#MSG_START[@]}]}
 MID_TXT=${MSG_MID[$RANDOM % ${#MSG_MID[@]}]}
 END_TXT=${MSG_END[$RANDOM % ${#MSG_END[@]}]}
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOP="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-# --- STATISTICS ---
-SKIPPED_LIST=()
 
 # --- YOUR COMMITS ---
 PATCHES=(
@@ -52,6 +57,8 @@ PATCHES=(
 echo -e "${C_PRIME}󱐋 $START_TXT${NC}"
 echo -e "${C_WARN}󱗘 $MID_TXT${NC}\n"
 
+SKIPPED_LIST=()
+
 for patch in "${PATCHES[@]}"; do
     IFS='|' read -r TARGET_DIR R_NAME R_URL COMMIT_HASH <<< "$patch"
     FULL_PATH="$TOP/$TARGET_DIR"
@@ -64,27 +71,21 @@ for patch in "${PATCHES[@]}"; do
 
     cd "$FULL_PATH" || continue
     
-    # Remote Management
-    if git remote | grep -q "$R_NAME"; then
-        git remote set-url "$R_NAME" "$R_URL"
-    else
-        git remote add "$R_NAME" "$R_URL"
-    fi
+    [[ $(git remote) =~ "$R_NAME" ]] && git remote set-url "$R_NAME" "$R_URL" || git remote add "$R_NAME" "$R_URL"
     
-    # Duplicate Check
     if git rev-parse --quiet --verify "${COMMIT_HASH}^{commit}" >/dev/null 2>&1 && \
        git merge-base --is-ancestor "$COMMIT_HASH" HEAD >/dev/null 2>&1; then
         echo -e "  ${C_ACCENT}󰄬 $SHORT_HASH already present in $TARGET_DIR. Skipping.${NC}"
         continue
     fi
     
-    echo -ne "  ${C_GOSSIP}Picking $SHORT_HASH into $TARGET_DIR... ${NC}"
+    echo -ne "  ${C_GOSSIP}CP $SHORT_HASH -> $TARGET_DIR... ${NC}"
     if git fetch "$R_NAME" --quiet; then
         if git cherry-pick "$COMMIT_HASH" &>/dev/null; then
             echo -e "✅"
         else
             if [ -z "$(git status --porcelain)" ]; then
-                 echo -e "✅ ${C_ACCENT}(Already applied)${NC}"
+                 echo -e "✅ ${C_ACCENT}(Applied)${NC}"
                  git cherry-pick --abort &>/dev/null
             else
                 echo -e "❌ ${C_DANGER}CONFLICT! Auto-skipping...${NC}"
@@ -94,16 +95,12 @@ for patch in "${PATCHES[@]}"; do
         fi
     else
         echo -e "❌ ${C_DANGER}FETCH FAILED${NC}"
-        SKIPPED_LIST+=("$TARGET_DIR | $SHORT_HASH (Fetch Failed)")
     fi
 done
 
-# --- SKIP SUMMARY ---
 if [ ${#SKIPPED_LIST[@]} -ne 0 ]; then
     echo -e "\n${C_DANGER}⚠️  WARNING: SOME PATCHES SKIPPED${NC}"
-    for item in "${SKIPPED_LIST[@]}"; do
-        echo -e "  ${C_WARN}󰔶 $item${NC}"
-    done
+    for item in "${SKIPPED_LIST[@]}"; do echo -e "  ${C_WARN}󰔶 $item${NC}"; done
 fi
 
 echo -e "\n${C_ACCENT}󰄬 $END_TXT${NC}"

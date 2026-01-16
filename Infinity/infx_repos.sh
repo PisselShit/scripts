@@ -11,12 +11,20 @@ C_GOSSIP=$(hex_fg 139 233 253)
 
 # --- DIRECTORY INTELLIGENCE ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOP="$(cd "$SCRIPT_DIR/.." && pwd)"
+TOP="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# --- SANITY CHECK ---
+if [ ! -d "$TOP/.repo" ]; then
+    echo -e "${C_DANGER}❌ ABORTING HEIST!${NC}"
+    echo -e "${C_WARN}The script could not find the .repo folder at:${NC} $TOP"
+    echo -e "Make sure this script is in infx/scripts/Infinity/ within your ROM root."
+    exit 1
+fi
 
 # --- THE JOKE VAULT ---
-START_QUIPS=("Scanning for local traces..." "Securing your custom mods..." "Checking the vault status..." "Disabling the security cameras..." "Cracking the mainframe...")
-MID_QUIPS=("Siphoning data..." "Loading the van..." "Merging the loot..." "Avoiding the feds..." "Handing off the encrypted drives...")
-END_QUIPS=("Loot secured." "Clean getaway." "Heist complete." "The van is gone. No traces left." "Diamonds in the bag.")
+START_QUIPS=("Scanning for local traces..." "Securing your custom mods..." "Checking the vault status..." "Disabling the security cameras...")
+MID_QUIPS=("Siphoning data..." "Loading the van..." "Merging the loot..." "Avoiding the feds...")
+END_QUIPS=("Loot secured." "Clean getaway." "Heist complete." "The van is gone.")
 
 RAND_START=${START_QUIPS[$RANDOM % ${#START_QUIPS[@]}]}
 RAND_MID=${MID_QUIPS[$RANDOM % ${#MID_QUIPS[@]}]}
@@ -84,7 +92,7 @@ select opt in "${options[@]}"; do
     esac
 done
 
-# --- 2. OFFICIAL LOGO ---
+# --- 2. LOGO ---
 echo -e "\n${C_ACCENT}  _____        __ _        _ _                __   __"
 echo -e "${C_PRIME} |_   _|      / _(_)      (_) |               \ \ / /"
 echo -e "${C_GOSSIP}   | |  _ __ | |_ _ _ __  _| |_ _   _        \   / "
@@ -93,7 +101,7 @@ echo -e "${C_PRIME}  _| |_| | | | | | | | | | | |_| |_| |_____| /   \ "
 echo -e "${C_GOSSIP} |_____|_| |_|_| |_|_| |_|_|\__|\__, |      /_/ \_\\"
 echo -e "${C_ACCENT}                                |__/               ${NC}\n"
 
-# --- 3. SANITIZATION (With Confirmation) ---
+# --- 3. SANITIZATION ---
 FOUND_CONFLICTS=()
 for trash in "${PURGE_LIST[@]}"; do
     IFS="|" read -r _ DIR_REL _ <<< "$trash"
@@ -104,42 +112,28 @@ done
 
 if [ ${#FOUND_CONFLICTS[@]} -gt 0 ]; then
     echo -e "${C_WARN}⚠️  FOUND CONFLICTING REPOS FROM THE OTHER SERIES:${NC}"
-    for item in "${FOUND_CONFLICTS[@]}"; do
-        echo -e "  - $item"
-    done
+    for item in "${FOUND_CONFLICTS[@]}"; do echo -e "  - $item"; done
     echo ""
     read -p "Do you want to purge these conflicting repos? (y/n): " confirm
-    if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
-        for item in "${FOUND_CONFLICTS[@]}"; do
-            echo -e "${C_DANGER}Removing:${NC} $item"
-            rm -rf "$TOP/$item"
-        done
+    if [[ $confirm == [yY] ]]; then
+        for item in "${FOUND_CONFLICTS[@]}"; do rm -rf "$TOP/$item"; done
         echo -e "${C_GOSSIP}Sanitization complete.${NC}\n"
-    else
-        echo -e "${C_WARN}Skipping purge. Proceeding with sync...${NC}\n"
     fi
 fi
 
 # --- 4. AUTHENTICATION ---
 for vault in "github.com" "gitlab.com"; do
     echo -ne "${C_ACCENT}Handshaking with $vault... ${NC}"
-    if check_auth "$vault"; then
-        echo -e "${C_GOSSIP}CONNECTED.${NC}"
-    else
-        echo -e "${C_DANGER}PERMISSION DENIED!${NC}"
-        read -p "Press [Enter] to try anyway..."
-    fi
+    check_auth "$vault" && echo -e "${C_GOSSIP}CONNECTED.${NC}" || echo -e "${C_DANGER}FAILED.${NC}"
 done
 
-# --- 5. PRE-FLIGHT ---
+# --- 5. SYNC ENGINE ---
 STASH_LOG="$SCRIPT_DIR/.heist_stashes"
 REPORT_FILE="$SCRIPT_DIR/.heist_report"
 > "$STASH_LOG"; > "$REPORT_FILE"
-trap "rm -f $STASH_LOG $REPORT_FILE; echo -e '\n${C_DANGER}ABORTED!${NC}'; exit" SIGINT SIGTERM
+trap "rm -f $STASH_LOG $REPORT_FILE; exit" SIGINT SIGTERM
 
 echo -e "\n${C_ACCENT}$RAND_START${NC}"
-
-# --- 6. SYNC ENGINE ---
 echo -e "${C_PRIME}$RAND_MID${NC}"
 START_SYNC=$(date +%s)
 TOTAL_REPOS=${#REPOS[@]}
@@ -149,19 +143,15 @@ for entry in "${REPOS[@]}"; do
     IFS="|" read -r REPO_URL DIR_REL REPO_BRANCH <<< "$entry"
     DIR="$TOP/$DIR_REL"
     ((current++))
-    
     percent=$((current * 100 / TOTAL_REPOS))
     bar_size=$((percent / 3))
-    printf "\r\033[K${C_ACCENT}▐$(hex_fg 187 134 252)%-33s${C_ACCENT}▌${NC} %d%% | ${C_GOSSIP}Cloning: %s${NC}" \
-            "$(printf '█%.0s' $(seq 1 $bar_size))" "$percent" "$DIR_REL"
+    printf "\r\033[K${C_ACCENT}▐$(hex_fg 187 134 252)%-33s${C_ACCENT}▌${NC} %d%% | ${C_GOSSIP}Cloning: %s${NC}" "$(printf '█%.0s' $(seq 1 $bar_size))" "$percent" "$DIR_REL"
 
-    # Handle Stashing
     if [ -d "$DIR/.git" ] && [[ -n $(git -C "$DIR" status --porcelain) ]]; then
         git -C "$DIR" stash push -m "Heist_Auto_Stash" --quiet
         echo "$DIR" >> "$STASH_LOG"
     fi
 
-    # Syncing
     if [ -d "$DIR/.git" ]; then
         git -C "$DIR" remote set-url origin "$REPO_URL" &>/dev/null
         if git -C "$DIR" fetch origin "$REPO_BRANCH" --quiet && git -C "$DIR" reset --hard origin/"$REPO_BRANCH" --quiet; then
@@ -179,13 +169,9 @@ for entry in "${REPOS[@]}"; do
     fi
 done
 
-# --- 7. CLEANUP & REPORT ---
-[[ -s "$STASH_LOG" ]] && while read -r DIR; do git -C "$DIR" stash pop --quiet 2>/dev/null; done < "$STASH_LOG"
+[[ -s "$STASH_LOG" ]] && while read -r D; do git -C "$D" stash pop --quiet 2>/dev/null; done < "$STASH_LOG"
 
-END_SYNC=$(date +%s)
 echo -e "\n\n${C_PRIME}┌──────────────── HEIST REPORT ────────────────┐${NC}"
 cat "$REPORT_FILE"
 echo -e "${C_PRIME}└──────────────────────────────────────────────┘${NC}"
-
-echo -e "\n${C_WARN}Infinity-X: $RAND_END (Total time: $((END_SYNC - START_SYNC))s)${NC}\n"
 rm -f "$STASH_LOG" "$REPORT_FILE"
