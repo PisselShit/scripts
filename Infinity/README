@@ -1,0 +1,44 @@
+🚀 1. Infinity Repos
+This is the core sync engine. It ensures your source tree is perfectly aligned with the Infinity-X manifests.
+
+Key Features:
+- Dual-Series Support: Switch between Pixel 7 and Pixel 9 series on the fly.
+
+- Auto-Sanitization: Automatically detects if you have the "wrong" device repos local and offers to purge them to prevent build conflicts.
+
+- Safety Stashing: If you have uncommitted changes, the script stashes them before syncing and pops them back afterward.
+
+- Smart Auth: Handles GitHub and GitLab handshakes without hanging.
+
+- Select your target series (Pixel 7 or 9).
+
+- Confirm the purge of any conflicting repositories.
+
+- Wait for the Heist Report to verify all clones and updates.
+
+🧪 2. Infinity Cherry-Picks
+Once your repos are synced, this "Personality Engine" injects your custom modifications into the source.
+
+Key Features:
+- Multi-Source Fetching: Fetches from GitHub, GitLab, and Codeberg simultaneously.
+
+- Duplicate Detection: Checks if a commit hash is already an ancestor of your current HEAD to prevent redundant picking.
+
+- Conflict Handling: If a cherry-pick fails, the script safely skips it and logs it for a final summary rather than breaking the loop.
+
+- Personality Engine: Features randomized status messages for a true "mainframe slicing" experience.
+
+📂 Directory Structure
+The scripts expect to be placed in a subdirectory (like scripts/ or infx/) within your main ROM source root. They use TOP="$(cd "$SCRIPT_DIR/.." && pwd)" to locate the base of your project.
+
+Note: Ensure you have SSH keys configured for GitHub, GitLab, and Codeberg for a seamless, password-less "Heist."
+
+
+* To make the script executable for cloning or cherry-picking
+
+chmod +x infx_repos.sh
+./infx_repos.sh
+
+chmod +x infx_gcp.sh
+./infx_gcp.sh
+

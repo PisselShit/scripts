@@ -3,11 +3,11 @@
 # --- HEX COLOR ENGINE ---
 hex_fg() { echo -ne "\033[38;2;$1;$2;$3m"; }
 NC='\033[0m'
-C_PRIME=$(hex_fg 187 134 252)  # Purple
-C_ACCENT=$(hex_fg 3 218 198)   # Teal
-C_WARN=$(hex_fg 255 184 108)   # Orange
-C_DANGER=$(hex_fg 255 85 85)   # Red
-C_GOSSIP=$(hex_fg 139 233 253) # Sky Blue
+C_PRIME=$(hex_fg 187 134 252)
+C_ACCENT=$(hex_fg 3 218 198)
+C_WARN=$(hex_fg 255 184 108)
+C_DANGER=$(hex_fg 255 85 85)
+C_GOSSIP=$(hex_fg 139 233 253)
 
 # --- DIRECTORY INTELLIGENCE ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
