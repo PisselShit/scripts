@@ -13,57 +13,10 @@ C_GOSSIP=$(hex_fg 139 233 253)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOP="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# --- SANITY CHECK ---
 if [ ! -d "$TOP/.repo" ]; then
     echo -e "${C_DANGER}❌ ABORTING HEIST!${NC}"
-    echo -e "${C_WARN}The script could not find the .repo folder at:${NC} $TOP"
-    echo -e "Make sure this script is in infx/scripts/Infinity/ within your ROM root."
     exit 1
 fi
-
-# --- THE JOKE VAULT ---
-START_QUIPS=("Scanning for local traces..." "Securing your custom mods..." "Checking the vault status..." "Disabling the security cameras...")
-MID_QUIPS=("Siphoning data..." "Loading the van..." "Merging the loot..." "Avoiding the feds...")
-END_QUIPS=("Loot secured." "Clean getaway." "Heist complete." "The van is gone.")
-
-RAND_START=${START_QUIPS[$RANDOM % ${#START_QUIPS[@]}]}
-RAND_MID=${MID_QUIPS[$RANDOM % ${#MID_QUIPS[@]}]}
-RAND_END=${END_QUIPS[$RANDOM % ${#END_QUIPS[@]}]}
-
-# --- REPO BUNDLES ---
-B_GS="16-qpr1"
-B_PIX="16"
-
-REPOS_COMMON=(
-    "git@github.com:Infinity-X-Devices/device_google_gs-common.git|device/google/gs-common|$B_GS"
-    "git@gitlab.com:Pyrtle93/vendor_google_camera.git|vendor/google/camera|16"
-    "git@github.com:PisselShit/vendor_google_faceunlock.git|vendor/google/faceunlock|16"
-    "git@github.com:crdroidandroid/android_packages_apps_PixelParts.git|packages/apps/PixelParts|16.0"
-)
-
-REPOS_P7=(
-    "git@github.com:Infinity-X-Devices/device_google_gs201.git|device/google/gs201|$B_GS"
-    "git@github.com:Infinity-X-Devices/device_google_pantah.git|device/google/pantah|$B_GS"
-    "git@github.com:Infinity-X-Devices/device_google_lynx.git|device/google/lynx|$B_GS"
-    "git@github.com:Infinity-X-Devices/device_google_cheetah.git|device/google/cheetah|15"
-    "git@github.com:Infinity-X-Devices/device_google_panther.git|device/google/panther|15"
-    "git@github.com:Infinity-X-Devices/vendor_google_lynx.git|vendor/google/lynx|$B_GS"
-    "git@github.com:Infinity-X-Devices/vendor_google_panther.git|vendor/google/panther|$B_GS"
-    "git@github.com:Infinity-X-Devices/vendor_google_cheetah.git|vendor/google/cheetah|$B_GS"
-)
-
-REPOS_P9=(
-    "git@github.com:Infinity-X-Devices/device_google_caimito.git|device/google/caimito|$B_GS"
-    "git@github.com:Infinity-X-Devices/device_google_zumapro.git|device/google/zumapro|$B_GS"
-    "git@github.com:Infinity-X-Devices/device_google_tegu.git|device/google/tegu|$B_GS"
-    "git@github.com:Infinity-X-Devices/device_google_caiman.git|device/google/caiman|$B_PIX"
-    "git@github.com:Infinity-X-Devices/device_google_komodo.git|device/google/komodo|$B_PIX"
-    "git@github.com:Infinity-X-Devices/device_google_tokay.git|device/google/tokay|$B_PIX"
-    "git@github.com:Infinity-X-Devices/vendor_google_tokay.git|vendor/google/tokay|$B_GS"
-    "git@github.com:Infinity-X-Devices/vendor_google_caiman.git|vendor/google/caiman|$B_GS"
-    "git@github.com:Infinity-X-Devices/vendor_google_komodo.git|vendor/google/komodo|$B_GS"
-    "git@github.com:Infinity-X-Devices/vendor_google_tegu.git|vendor/google/tegu|$B_GS"
-)
 
 # --- UTILITIES ---
 check_auth() {
@@ -72,27 +25,83 @@ check_auth() {
     [[ $status -eq 0 || $status -eq 1 ]] && return 0 || return 1
 }
 
+# --- THE JOKE VAULT ---
+START_QUIPS=("Burning the old files..." "Securing the perimeter..." "Eliminating witnesses...")
+MID_QUIPS=("Siphoning data..." "Loading the van..." "Merging the loot...")
+END_QUIPS=("Loot secured." "Clean getaway." "Heist complete.")
+
+RAND_START=${START_QUIPS[$RANDOM % ${#START_QUIPS[@]}]}
+RAND_MID=${MID_QUIPS[$RANDOM % ${#MID_QUIPS[@]}]}
+RAND_END=${END_QUIPS[$RANDOM % ${#END_QUIPS[@]}]}
+
 # --- 1. TARGET SELECTION ---
 clear
 echo -e "\n${C_PRIME}🎯 SELECT YOUR TARGET HEIST:${NC}"
-PS3="Choose an option (1-3): "
-options=("Pixel 7 Series" "Pixel 9 Series" "Abort")
+options=("Pixel 7 (Panther)" "Pixel 7 Pro (Cheetah)" "Pixel 7a (Lynx)" "Pixel 9 (Tokay)" "Pixel 9 Pro (Caiman)" "Pixel 9 Pro XL (Komodo)" "Pixel 9a (Tegu)" "Abort")
+
 select opt in "${options[@]}"; do
     case $opt in
-        "Pixel 7 Series") 
-            REPOS=("${REPOS_COMMON[@]}" "${REPOS_P7[@]}")
-            PURGE_LIST=("${REPOS_P9[@]}")
-            break ;;
-        "Pixel 9 Series") 
-            REPOS=("${REPOS_COMMON[@]}" "${REPOS_P9[@]}")
-            PURGE_LIST=("${REPOS_P7[@]}")
-            break ;;
+        "Pixel 7 (Panther)") D_FOLDER="pantah"; D_MAKEFILE="panther"; REPO_VAR="15"; FAMILY="GS201"; break ;;
+        "Pixel 7 Pro (Cheetah)") D_FOLDER="pantah"; D_MAKEFILE="cheetah"; REPO_VAR="15"; FAMILY="GS201"; break ;;
+        "Pixel 7a (Lynx)") D_FOLDER="lynx"; D_MAKEFILE="lynx"; REPO_VAR="16-qpr1"; FAMILY="GS201"; break ;;
+        "Pixel 9 (Tokay)") D_FOLDER="caimito"; D_MAKEFILE="tokay"; REPO_VAR="16"; FAMILY="ZUMAPRO"; break ;;
+        "Pixel 9 Pro (Caiman)") D_FOLDER="caimito"; D_MAKEFILE="caiman"; REPO_VAR="16"; FAMILY="ZUMAPRO"; break ;;
+        "Pixel 9 Pro XL (Komodo)") D_FOLDER="caimito"; D_MAKEFILE="komodo"; REPO_VAR="16"; FAMILY="ZUMAPRO"; break ;;
+        "Pixel 9a (Tegu)") D_FOLDER="tegu"; D_MAKEFILE="tegu"; REPO_VAR="16-qpr1"; FAMILY="ZUMAPRO"; break ;;
         "Abort") exit 1 ;;
-        *) echo "Invalid choice." ;;
     esac
 done
 
-# --- 2. LOGO ---
+# --- 2. TERRITORY CLEANUP ---
+TO_REMOVE=()
+GS201_PATHS=("$TOP/device/google/gs201" "$TOP/device/google/pantah" "$TOP/device/google/panther" "$TOP/device/google/cheetah" "$TOP/device/google/lynx" "$TOP/vendor/google/panther" "$TOP/vendor/google/cheetah" "$TOP/vendor/google/lynx" "$TOP/device/google/pantah-kernels" "$TOP/device/google/lynx-kernels")
+ZUMAPRO_PATHS=("$TOP/device/google/zumapro" "$TOP/device/google/caimito" "$TOP/device/google/tokay" "$TOP/device/google/caiman" "$TOP/device/google/komodo" "$TOP/device/google/tegu" "$TOP/vendor/google/tokay" "$TOP/vendor/google/caiman" "$TOP/vendor/google/komodo" "$TOP/vendor/google/tegu" "$TOP/device/google/caimito-kernels" "$TOP/device/google/tegu-kernels")
+
+if [ "$FAMILY" == "GS201" ]; then DIRS=("${ZUMAPRO_PATHS[@]}"); else DIRS=("${GS201_PATHS[@]}"); fi
+
+for d in "${DIRS[@]}"; do [ -d "$d" ] && TO_REMOVE+=("$d"); done
+
+if [ ${#TO_REMOVE[@]} -gt 0 ]; then
+    echo -e "\n${C_WARN}⚠️  TERRITORY CLASH DETECTED!${NC}"
+    echo -e "${C_PRIME}Found legacy files from the other family:${NC}"
+    for r in "${TO_REMOVE[@]}"; do echo -e "  ${C_DANGER}➜${NC} ${r#$TOP/}"; done
+
+    echo -ne "\n${C_DANGER}Dispose of this evidence? (y/n): ${NC}"
+    read -r reply
+    if [[ "$reply" =~ ^[Yy]$ ]]; then
+        for r in "${TO_REMOVE[@]}"; do rm -rf "$r"; done
+        echo -e "${C_GOSSIP}Clean sweep complete.${NC}"
+    else
+        echo -e "${C_WARN}Evidence retained. Proceeding with potential contamination...${NC}"
+    fi
+fi
+
+# --- 3. REPO SETUP ---
+B_GS="16-qpr1"
+B_LOS="lineage-23.1"
+
+REPOS_COMMON=(
+    "git@github.com:Infinity-X-Devices/device_google_gs-common.git|device/google/gs-common|$B_GS"
+    "git@gitlab.com:Pyrtle93/vendor_google_camera.git|vendor/google/camera|16"
+    "git@github.com:PisselShit/vendor_google_faceunlock.git|vendor/google/faceunlock|16"
+    "git@github.com:crdroidandroid/android_packages_apps_PixelParts.git|packages/apps/PixelParts|16.0"
+    "git@github.com:LineageOS/android_kernel_google_gs-6.1_google-modules.git|kernel/google/gs-6.1/google-modules|$B_LOS"
+    "git@github.com:LineageOS/android_kernel_google_gs-6.1_devices.git|kernel/google/gs-6.1/devices|$B_LOS"
+)
+
+SPECIFIC_REPOS=(
+    "git@github.com:Infinity-X-Devices/device_google_${D_FOLDER}.git|device/google/${D_FOLDER}|$B_GS"
+    "git@github.com:Infinity-X-Devices/device_google_${D_MAKEFILE}.git|device/google/${D_MAKEFILE}|$REPO_VAR"
+    "git@github.com:Infinity-X-Devices/vendor_google_${D_MAKEFILE}.git|vendor/google/${D_MAKEFILE}|$B_GS"
+    "git@github.com:LineageOS/android_device_google_${D_FOLDER}-kernels.git|device/google/${D_FOLDER}-kernels|$B_LOS"
+)
+
+[[ "$FAMILY" == "GS201" ]] && REPOS_COMMON+=("git@github.com:Infinity-X-Devices/device_google_gs201.git|device/google/gs201|$B_GS")
+[[ "$FAMILY" == "ZUMAPRO" ]] && REPOS_COMMON+=("git@github.com:Infinity-X-Devices/device_google_zumapro.git|device/google/zumapro|$B_GS")
+
+REPOS=("${REPOS_COMMON[@]}" "${SPECIFIC_REPOS[@]}")
+
+# --- 4. LOGO & AUTH ---
 echo -e "\n${C_ACCENT}  _____        __ _        _ _                __   __"
 echo -e "${C_PRIME} |_   _|      / _(_)      (_) |               \ \ / /"
 echo -e "${C_GOSSIP}   | |  _ __ | |_ _ _ __  _| |_ _   _        \   / "
@@ -101,77 +110,68 @@ echo -e "${C_PRIME}  _| |_| | | | | | | | | | | |_| |_| |_____| /   \ "
 echo -e "${C_GOSSIP} |_____|_| |_|_| |_|_| |_|_|\__|\__, |      /_/ \_\\"
 echo -e "${C_ACCENT}                                |__/               ${NC}\n"
 
-# --- 3. SANITIZATION ---
-FOUND_CONFLICTS=()
-for trash in "${PURGE_LIST[@]}"; do
-    IFS="|" read -r _ DIR_REL _ <<< "$trash"
-    if [ -d "$TOP/$DIR_REL" ]; then
-        FOUND_CONFLICTS+=("$DIR_REL")
-    fi
-done
-
-if [ ${#FOUND_CONFLICTS[@]} -gt 0 ]; then
-    echo -e "${C_WARN}⚠️  FOUND CONFLICTING REPOS FROM THE OTHER SERIES:${NC}"
-    for item in "${FOUND_CONFLICTS[@]}"; do echo -e "  - $item"; done
-    echo ""
-    read -p "Do you want to purge these conflicting repos? (y/n): " confirm
-    if [[ $confirm == [yY] ]]; then
-        for item in "${FOUND_CONFLICTS[@]}"; do rm -rf "$TOP/$item"; done
-        echo -e "${C_GOSSIP}Sanitization complete.${NC}\n"
-    fi
-fi
-
-# --- 4. AUTHENTICATION ---
 for vault in "github.com" "gitlab.com"; do
     echo -ne "${C_ACCENT}Handshaking with $vault... ${NC}"
     check_auth "$vault" && echo -e "${C_GOSSIP}CONNECTED.${NC}" || echo -e "${C_DANGER}FAILED.${NC}"
 done
 
 # --- 5. SYNC ENGINE ---
-STASH_LOG="$SCRIPT_DIR/.heist_stashes"
-REPORT_FILE="$SCRIPT_DIR/.heist_report"
-> "$STASH_LOG"; > "$REPORT_FILE"
-trap "rm -f $STASH_LOG $REPORT_FILE; exit" SIGINT SIGTERM
-
-echo -e "\n${C_ACCENT}$RAND_START${NC}"
-echo -e "${C_PRIME}$RAND_MID${NC}"
-START_SYNC=$(date +%s)
-TOTAL_REPOS=${#REPOS[@]}
-current=0
+echo -e "\n${C_PRIME}󰢚 $RAND_START${NC}\n"
+REPORT_FILE="$SCRIPT_DIR/.heist_report"; > "$REPORT_FILE"
 
 for entry in "${REPOS[@]}"; do
     IFS="|" read -r REPO_URL DIR_REL REPO_BRANCH <<< "$entry"
     DIR="$TOP/$DIR_REL"
-    ((current++))
-    percent=$((current * 100 / TOTAL_REPOS))
-    bar_size=$((percent / 3))
-    printf "\r\033[K${C_ACCENT}▐$(hex_fg 187 134 252)%-33s${C_ACCENT}▌${NC} %d%% | ${C_GOSSIP}Cloning: %s${NC}" "$(printf '█%.0s' $(seq 1 $bar_size))" "$percent" "$DIR_REL"
-
-    if [ -d "$DIR/.git" ] && [[ -n $(git -C "$DIR" status --porcelain) ]]; then
-        git -C "$DIR" stash push -m "Heist_Auto_Stash" --quiet
-        echo "$DIR" >> "$STASH_LOG"
-    fi
+    echo -ne "${C_ACCENT}Checking ${C_GOSSIP}$DIR_REL... ${NC}"
 
     if [ -d "$DIR/.git" ]; then
         git -C "$DIR" remote set-url origin "$REPO_URL" &>/dev/null
         if git -C "$DIR" fetch origin "$REPO_BRANCH" --quiet && git -C "$DIR" reset --hard origin/"$REPO_BRANCH" --quiet; then
-            echo -e "${C_GOSSIP}[UP TO DATE]${NC} $DIR_REL" >> "$REPORT_FILE"
-        else
-            echo -e "${C_DANGER}[FAILED]${NC} $DIR_REL" >> "$REPORT_FILE"
-        fi
+            echo -e "${C_GOSSIP}[OK]${NC}"; echo -e "UP TO DATE: $DIR_REL" >> "$REPORT_FILE"
+        else echo -e "${C_DANGER}[FAIL]${NC}"; echo -e "FAILED: $DIR_REL" >> "$REPORT_FILE"; fi
     else
+        [ -d "$DIR" ] && rm -rf "$DIR"
         mkdir -p "$(dirname "$DIR")"
         if git clone --single-branch -b "$REPO_BRANCH" "$REPO_URL" "$DIR" --quiet; then
-            echo -e "${C_ACCENT}[NEW]${NC} $DIR_REL" >> "$REPORT_FILE"
-        else
-            echo -e "${C_DANGER}[FAILED]${NC} $DIR_REL" >> "$REPORT_FILE"
-        fi
+            echo -e "${C_ACCENT}[NEW]${NC}"; echo -e "NEW: $DIR_REL" >> "$REPORT_FILE"
+        else echo -e "${C_DANGER}[FAIL]${NC}"; echo -e "FAILED: $DIR_REL" >> "$REPORT_FILE"; fi
     fi
 done
 
-[[ -s "$STASH_LOG" ]] && while read -r D; do git -C "$D" stash pop --quiet 2>/dev/null; done < "$STASH_LOG"
+# --- 6. MAKEFILE SURGERY ---
+echo -e "\n${C_GOSSIP}󰚰 $RAND_MID${NC}"
+echo -ne "${C_ACCENT}Performing Surgery... ${NC}"
+TARGET_MK="device-$D_MAKEFILE.mk"; FAMILY_MK="device-$D_FOLDER.mk"; MK_STATUS=""
+for FILE in "$TARGET_MK" "$FAMILY_MK"; do
+    MK_PATH="$TOP/device/google/$D_FOLDER/$FILE"
+    if [ -f "$MK_PATH" ]; then
+        if ! grep -q "\-kernels" "$MK_PATH"; then
+            sed -i "s|${D_FOLDER}-kernel/|${D_FOLDER}-kernels/|g" "$MK_PATH"
+            MK_STATUS+="${C_ACCENT}🔧 PATCHED: $FILE\n${NC}"
+        else MK_STATUS+="${C_GOSSIP}✅ VERIFIED: $FILE already uses -kernels\n${NC}"
+        fi
+    fi
+done
+echo -e "DONE."
+echo -e "$MK_STATUS"
 
-echo -e "\n\n${C_PRIME}┌──────────────── HEIST REPORT ────────────────┐${NC}"
+# --- 7. KERNEL VALIDATION ---
+echo -e "${C_GOSSIP}󰗠 Validating Kernel Components...${NC}"
+SEARCH_PATHS=("$TOP/device/google/${D_FOLDER}-kernels" "$TOP/kernel/google/gs-6.1/devices" "$TOP/kernel/google/gs-6.1/google-modules")
+FOUND_ANY=false
+for K_PATH in "${SEARCH_PATHS[@]}"; do
+    if [ -d "$K_PATH" ]; then
+        IMG=$(find "$K_PATH" -maxdepth 3 -name "Image*" -o -name "Makefile" | head -n 1)
+        if [ -n "$IMG" ]; then
+            echo -e "  ${C_ACCENT}[ FOUND ]${NC} ${K_PATH#$TOP/}"
+            FOUND_ANY=true
+        else echo -e "  ${C_WARN}[ EMPTY ]${NC} ${K_PATH#$TOP/}"; fi
+    else echo -e "  ${C_DANGER}[ MISSING ]${NC} ${K_PATH#$TOP/}"; fi
+done
+
+# --- 8. WRAP UP ---
+echo -e "\n${C_PRIME}┌──────────────── HEIST REPORT ────────────────┐${NC}"
 cat "$REPORT_FILE"
 echo -e "${C_PRIME}└──────────────────────────────────────────────┘${NC}"
-rm -f "$STASH_LOG" "$REPORT_FILE"
+echo -e "\n${C_ACCENT}󰥻 $RAND_END${NC}"
+rm -f "$REPORT_FILE"
