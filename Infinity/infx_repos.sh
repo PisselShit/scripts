@@ -115,7 +115,7 @@ for vault in "github.com" "gitlab.com"; do
     check_auth "$vault" && echo -e "${C_GOSSIP}CONNECTED.${NC}" || echo -e "${C_DANGER}FAILED.${NC}"
 done
 
-# --- 5. SYNC ENGINE ---
+# --- 5. SYNC ENGINE (TRANSPARENT STASHING) ---
 echo -e "\n${C_PRIME}󰢚 $RAND_START${NC}\n"
 REPORT_FILE="$SCRIPT_DIR/.heist_report"; > "$REPORT_FILE"
 
@@ -126,15 +126,42 @@ for entry in "${REPOS[@]}"; do
 
     if [ -d "$DIR/.git" ]; then
         git -C "$DIR" remote set-url origin "$REPO_URL" &>/dev/null
-        if git -C "$DIR" fetch origin "$REPO_BRANCH" --quiet && git -C "$DIR" reset --hard origin/"$REPO_BRANCH" --quiet; then
-            echo -e "${C_GOSSIP}[OK]${NC}"; echo -e "UP TO DATE: $DIR_REL" >> "$REPORT_FILE"
-        else echo -e "${C_DANGER}[FAIL]${NC}"; echo -e "FAILED: $DIR_REL" >> "$REPORT_FILE"; fi
+        
+        # Determine if there are local changes to stash
+        HAS_CHANGES=$(git -C "$DIR" status --porcelain)
+        if [ -n "$HAS_CHANGES" ]; then
+            echo -ne "${C_WARN}[STASHING EDITS]${NC} "
+            git -C "$DIR" stash push -m "Heist auto-stash" --quiet
+            STASHED=true
+        else
+            STASHED=false
+        fi
+        
+        if git -C "$DIR" fetch origin "$REPO_BRANCH" --quiet && git -C "$DIR" rebase origin/"$REPO_BRANCH" --quiet; then
+            if [ "$STASHED" = true ]; then
+                git -C "$DIR" stash pop --quiet &>/dev/null
+                echo -e "${C_GOSSIP}[OK + REAPPLIED]${NC}"
+                echo -e "UP TO DATE (REAPPLIED EDITS): $DIR_REL" >> "$REPORT_FILE"
+            else
+                echo -e "${C_GOSSIP}[OK]${NC}"
+                echo -e "UP TO DATE: $DIR_REL" >> "$REPORT_FILE"
+            fi
+        else 
+            echo -e "${C_DANGER}[FAIL]${NC}"
+            echo -e "FAILED REBASE: $DIR_REL" >> "$REPORT_FILE"
+            git -C "$DIR" rebase --abort &>/dev/null
+            [ "$STASHED" = true ] && git -C "$DIR" stash pop --quiet &>/dev/null
+        fi
     else
         [ -d "$DIR" ] && rm -rf "$DIR"
         mkdir -p "$(dirname "$DIR")"
         if git clone --single-branch -b "$REPO_BRANCH" "$REPO_URL" "$DIR" --quiet; then
-            echo -e "${C_ACCENT}[NEW]${NC}"; echo -e "NEW: $DIR_REL" >> "$REPORT_FILE"
-        else echo -e "${C_DANGER}[FAIL]${NC}"; echo -e "FAILED: $DIR_REL" >> "$REPORT_FILE"; fi
+            echo -e "${C_ACCENT}[NEW]${NC}"
+            echo -e "NEW: $DIR_REL" >> "$REPORT_FILE"
+        else 
+            echo -e "${C_DANGER}[FAIL]${NC}"
+            echo -e "FAILED: $DIR_REL" >> "$REPORT_FILE"
+        fi
     fi
 done
 
