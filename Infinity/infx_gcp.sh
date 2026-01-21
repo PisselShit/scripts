@@ -140,9 +140,15 @@ for rev in "${REVERTS[@]}"; do
         echo -e "${C_ACCENT}[ SUCCESS ]${NC}"
         ((SUCCESS_COUNT++))
     else
-        echo -e "${C_DANGER}[ CONFLICT ]${NC}"
+        # Check if the revert is failing because the change is already gone
+        if git status | grep -q "nothing to commit"; then
+            echo -e "${C_WARN}[ ALREADY REVERTED ]${NC}"
+            ((EXISTING_COUNT++))
+        else
+            echo -e "${C_DANGER}[ CONFLICT ]${NC}"
+            ((CONFLICT_COUNT++))
+        fi
         git revert --abort &>/dev/null
-        ((CONFLICT_COUNT++))
     fi
 done
 
