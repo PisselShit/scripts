@@ -1,0 +1,26 @@
+# --- Script Configuration ---
+# Contains your Telegram Token and Cloud credentials
+config.conf
+
+# --- Local Session & State ---
+# Contains your last used ROM, path, and changelog link
+.last_session
+.setup_state
+
+# --- Storage & Bookmarks ---
+# If you want to keep your bookmarks unique to this machine
+bookmarks.txt
+
+# --- Temporary Files ---
+# Used during the build discovery process
+.tmp_zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# --- Build Artifacts ---
+# Prevents actual Android .zip builds from being committed
+*.zip
+*.md5sum
+out/
