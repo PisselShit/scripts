@@ -150,15 +150,31 @@ for entry in "${REPOS[@]}"; do
 done
 wait
 
+# --- K-STRUCTURE ALIGNMENT (REDUNDANCY REMOVAL) ---
+echo -e "\n${C_GOSSIP} [+] Aligning Kernel Hierarchy (Private Space)...${NC}"
+K_BASE="$TOP/kernel/google/gs-6.1"
+K_PRIVATE="$K_BASE/private"
+
+for mod in "google-modules" "devices"; do
+    if [ -d "$K_BASE/$mod" ]; then
+        echo -e "  ${C_WARN}>> [RELOCATING]${NC} $mod -> private/"
+        mkdir -p "$K_PRIVATE"
+        # Remove existing target in private before moving to ensure clean copy
+        rm -rf "$K_PRIVATE/$mod"
+        mv "$K_BASE/$mod" "$K_PRIVATE/"
+        echo -e "  ${C_ACCENT}>> [SUCCESS]${NC} $mod moved to private space."
+    fi
+done
+
 # --- THE ULTIMATE INTEL AUDIT ---
 echo -e "\n${C_GOSSIP} [SCAN] Performing Deep Intelligence Sweep...${NC}"
 
 # --- Private Space & Config Scan ---
-K_PRIVATE="$TOP/kernel/google/gs-6.1/private"
-if [ -d "$K_PRIVATE" ]; then
-    echo -e "  ${C_ACCENT}[ VERIFIED ]${NC} Private Space: $K_PRIVATE"
+K_PRIVATE_PATH="$TOP/kernel/google/gs-6.1/private"
+if [ -d "$K_PRIVATE_PATH" ]; then
+    echo -e "  ${C_ACCENT}[ VERIFIED ]${NC} Private Space: $K_PRIVATE_PATH"
     for subdir in "devices" "google-modules"; do
-        [ -d "$K_PRIVATE/$subdir" ] && echo -e "                ${C_ACCENT}↳ [ OK ]${NC} Found sub-intel: $subdir" || echo -e "                ${C_DANGER}↳ [ MISSING ]${NC} Critical sub-intel: $subdir"
+        [ -d "$K_PRIVATE_PATH/$subdir" ] && echo -e "                ${C_ACCENT}↳ [ OK ]${NC} Found sub-intel: $subdir" || echo -e "                ${C_DANGER}↳ [ MISSING ]${NC} Critical sub-intel: $subdir"
     done
 fi
 
